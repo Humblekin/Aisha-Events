@@ -63,7 +63,7 @@ export default function VIPReservation({ onOpenAuth }) {
   const doVipBooking = async (data, paymentRef) => {
     setLoading(true)
     try {
-      await dataService.addBooking({
+      const booking = await dataService.addBooking({
         booking_type: 'vip',
         service_name: `VIP ${vipPkg.label} Package`,
         booking_date: data.date,
@@ -79,6 +79,19 @@ export default function VIPReservation({ onOpenAuth }) {
         amount: calcTotal(data.concierge),
         status: paymentRef ? 'confirmed' : 'pending'
       })
+      if (booking) {
+        await dataService.addPayment({
+          user_id: user?.id,
+          booking_id: booking.id,
+          amount: calcTotal(data.concierge),
+          currency: 'GHS',
+          method: 'paystack',
+          reference: paymentRef || `REF-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          status: paymentRef ? 'completed' : 'pending',
+          customer_name: data.name || user?.email || 'VIP Guest',
+          service_name: `VIP ${vipPkg.label} Package`
+        })
+      }
       addToast(`VIP ${vipPkg.label} reservation confirmed! Welcome to Aisha VIP.`, 'success')
       setFormData({ date: '', time: '', guests: 2, occasion: '', special_requests: '', concierge: false, name: '', phone: '', email: '' })
     } catch (err) {

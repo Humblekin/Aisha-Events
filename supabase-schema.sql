@@ -224,6 +224,8 @@ CREATE POLICY "Admins can manage orders"
 CREATE TABLE payments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES profiles(id),
+  customer_name TEXT,
+  service_name TEXT,
   booking_id UUID REFERENCES bookings(id),
   order_id UUID REFERENCES orders(id),
   amount DECIMAL(12,2) NOT NULL,
