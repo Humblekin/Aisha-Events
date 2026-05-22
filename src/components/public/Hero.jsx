@@ -177,7 +177,6 @@ export default function Hero({ onOpenAuth }) {
           loop
           playsInline
           className={`hero-slide${videoLoaded ? ' active' : ''}`}
-          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
           onLoadedData={() => setVideoLoaded(true)}
         >
           <source src={heroVideo} type="video/mp4" />
@@ -185,7 +184,7 @@ export default function Hero({ onOpenAuth }) {
         {slides.map((slide, i) => (
           <div
             key={i}
-            className={`hero-slide${!videoLoaded && i === currentSlide ? ' active' : ''}`}
+            className={`hero-slide hero-slide-img${!videoLoaded && i === currentSlide ? ' active' : ''}`}
             style={{ backgroundImage: `url(${slide})` }}
           />
         ))}
