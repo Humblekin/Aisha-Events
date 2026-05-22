@@ -9,7 +9,7 @@ import '../../styles/admin.css'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const DEFAULT_VIP_PACKAGES = [
-  { id: 'gold', label: 'Gold', price: 500, color: '#FF5722', desc: 'Premium seating, welcome drink, dedicated server' },
+  { id: 'gold', label: 'Gold', price: 500, color: '#C8A456', desc: 'Premium seating, welcome drink, dedicated server' },
   { id: 'platinum', label: 'Platinum', price: 1000, color: '#E5E4E2', desc: 'Gold + private lounge, champagne, custom menu' },
   { id: 'diamond', label: 'Diamond', price: 2000, color: '#B9F2FF', desc: 'Platinum + personal chef, limousine service, premium decor' },
   { id: 'royal', label: 'Royal', price: 5000, color: '#8A2BE2', desc: 'Diamond + exclusive hall, live entertainment, full concierge' }
@@ -53,7 +53,7 @@ const navSections = [
   { title: 'System', items: ['complaints', 'notifications', 'settings'] }
 ]
 
-const COLORS = ['#FF5722', '#E8853D', '#34D399', '#60A5FA']
+const COLORS = ['#C8A456', '#E8853D', '#34D399', '#60A5FA']
 
 const stCls = (s) => {
   if (!s) return 'inactive'
@@ -156,7 +156,7 @@ const stTabs = [
     content: () => <>
       <h3>Appearance Settings</h3>
       <SettingRow label="Dark Mode" desc="Toggle dark/light theme" control={<Toggle defaultChecked />} />
-      <SettingRow label="Primary Color" desc="Main brand accent color" control={<input type="color" defaultValue="#FF5722" style={{ width: '40px', height: '34px', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', background: 'none', cursor: 'pointer', padding: '2px' }} />} />
+       <SettingRow label="Primary Color" desc="Main brand accent color" control={<input type="color" defaultValue="#C8A456" style={{ width: '40px', height: '34px', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', background: 'none', cursor: 'pointer', padding: '2px' }} />} />
       <SettingRow label="Compact Mode" desc="Reduce spacing for denser layout" control={<Toggle />} />
     </>
   }
@@ -423,12 +423,12 @@ export default function AdminDashboard() {
             <div className="ch-cv">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={revenueByMonth}>
-                  <defs><linearGradient id="colorR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF5722" stopOpacity={0.25}/><stop offset="95%" stopColor="#FF5722" stopOpacity={0}/></linearGradient><linearGradient id="colorV" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#E8853D" stopOpacity={0.2}/><stop offset="95%" stopColor="#E8853D" stopOpacity={0}/></linearGradient></defs>
+                  <defs><linearGradient id="colorR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#C8A456" stopOpacity={0.25}/><stop offset="95%" stopColor="#C8A456" stopOpacity={0}/></linearGradient><linearGradient id="colorV" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#E8853D" stopOpacity={0.2}/><stop offset="95%" stopColor="#E8853D" stopOpacity={0}/></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                   <XAxis dataKey="name" stroke="var(--gray-500)" tick={{ fontSize: 11 }} />
                   <YAxis stroke="var(--gray-500)" tick={{ fontSize: 11 }} tickFormatter={(v) => v + 'M'} />
                   <Tooltip contentStyle={{ background: 'var(--black-card)', border: '1px solid var(--glass-border)', borderRadius: '8px' }} />
-                  <Area type="monotone" dataKey="Restaurants" stroke="#FF5722" fill="url(#colorR)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="Restaurants" stroke="#C8A456" fill="url(#colorR)" strokeWidth={2} />
                   <Area type="monotone" dataKey="Venues" stroke="#E8853D" fill="url(#colorV)" strokeWidth={2} />
                   <Legend />
                 </AreaChart>
@@ -511,7 +511,7 @@ export default function AdminDashboard() {
                   <XAxis type="number" stroke="var(--gray-500)" tick={{ fontSize: 11 }} />
                   <YAxis dataKey="name" type="category" stroke="var(--gray-500)" tick={{ fontSize: 11 }} width={100} />
                   <Tooltip contentStyle={{ background: 'var(--black-card)', border: '1px solid var(--glass-border)', borderRadius: '8px' }} />
-                  <Bar dataKey="orders" fill="#FF5722" radius={[0, 6, 6, 0]} barSize={26} />
+                  <Bar dataKey="orders" fill="#C8A456" radius={[0, 6, 6, 0]} barSize={26} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -526,7 +526,7 @@ export default function AdminDashboard() {
                 <XAxis dataKey="name" stroke="var(--gray-500)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="var(--gray-500)" tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: 'var(--black-card)', border: '1px solid var(--glass-border)', borderRadius: '8px' }} />
-                <Bar dataKey="bookings" fill="#FF5722" radius={[6, 6, 0, 0]} barSize={18} />
+                <Bar dataKey="bookings" fill="#C8A456" radius={[6, 6, 0, 0]} barSize={18} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -943,7 +943,7 @@ export default function AdminDashboard() {
                 </tr>
               ))}
               <tr>
-                <td><div className="uc"><div className="ua" style={{ background: 'rgba(255,87,34,.12)', color: '#FF5722', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>C</div><div><div className="un">Concierge Fee</div></div></div></td>
+                <td><div className="uc"><div className="ua" style={{ background: 'rgba(200,164,86,.12)', color: '#C8A456', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>C</div><div><div className="un">Concierge Fee</div></div></div></td>
                 <td></td>
                 <td><input type="number" className="s-input" value={vipConfig.conciergeFee} onChange={e => updateConciergeFee(e.target.value)} min="0" step="50" style={{ width: 120 }} /></td>
                 <td style={{ color: 'var(--gray-500)', fontSize: '.85rem' }}>Additional charge for dedicated concierge service</td>

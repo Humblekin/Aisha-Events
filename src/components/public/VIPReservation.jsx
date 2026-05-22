@@ -7,7 +7,7 @@ import { sanitizeText, validateEmail, validatePhone } from '../../lib/sanitize'
 
 const VIP_CONFIG_KEY = 'aisha_vip_config'
 const DEFAULT_VIP_PACKAGES = [
-  { id: 'gold', label: 'Gold', price: 500, color: '#FF5722', desc: 'Premium seating, welcome drink, dedicated server' },
+  { id: 'gold', label: 'Gold', price: 500, color: '#C8A456', desc: 'Premium seating, welcome drink, dedicated server' },
   { id: 'platinum', label: 'Platinum', price: 1000, color: '#E5E4E2', desc: 'Gold + private lounge, champagne, custom menu' },
   { id: 'diamond', label: 'Diamond', price: 2000, color: '#B9F2FF', desc: 'Platinum + personal chef, limousine service, premium decor' },
   { id: 'royal', label: 'Royal', price: 5000, color: '#8A2BE2', desc: 'Diamond + exclusive hall, live entertainment, full concierge' }
