@@ -7,10 +7,12 @@ import { sanitizeText } from '../../lib/sanitize'
 import heroVideo from '../../assets/Aisha images/WhatsApp Video 2026-05-22 at 10.56.32 AM.mp4'
 import heroImg1 from '../../assets/Aisha images/image 1.jpeg'
 import heroImg2 from '../../assets/Aisha images/image 2.jpeg'
+import heroImg3 from '../../assets/Aisha images/image 3.jpeg'
+import heroImg4 from '../../assets/Aisha images/image 4.jpeg'
 
 const BOOKING_DEPOSIT = 20
 
-const slides = [heroImg1, heroImg2]
+const slides = [heroImg1, heroImg2, heroImg3, heroImg4]
 
 function AnimatedCounter({ target, suffix }) {
   const [value, setValue] = useState(0)
