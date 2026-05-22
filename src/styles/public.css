@@ -462,12 +462,12 @@
   font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 700;
-  color: var(--gray-100);
+  color: #F5F5F5;
   margin-bottom: 6px;
 }
 .booking-card p {
   font-size: 0.85rem;
-  color: var(--gray-400);
+  color: #A0A0A0;
   margin-bottom: 24px;
 }
 .form-group { margin-bottom: 16px; }
@@ -499,10 +499,10 @@
 .form-group select option { background: var(--black-card); color: var(--gray-200); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .booking-card .btn { width: 100%; justify-content: center; margin-top: 8px; }
-.booking-card label { color: var(--gray-300) !important; }
+.booking-card label { color: #D1D1D1 !important; }
 .booking-card input,
-.booking-card select { background: var(--glass-b) !important; color: var(--gray-200) !important; border-color: var(--glass-border) !important; }
-.booking-card select option { background: var(--black-card); color: var(--gray-200); }
+.booking-card select { background: var(--glass-b) !important; color: #E8E8E8 !important; border-color: var(--glass-border) !important; }
+.booking-card select option { background: #0A0A0A; color: #E8E8E8; }
 .hero-indicators {
   position: absolute;
   bottom: 40px;
