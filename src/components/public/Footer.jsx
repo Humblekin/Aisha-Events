@@ -1,16 +1,13 @@
-export default function Footer() {
-  const scrollTo = (id) => {
-    const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: 'smooth' })
-  }
+import logo from '../../assets/Aisha images/logo.jpeg'
 
+export default function Footer() {
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <span className="logo-icon" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>AE</span>
+              <img src={logo} alt="Aisha Events" className="logo-icon" style={{ width: '32px', height: '32px' }} />
               Aisha Events Centre
             </div>
             <p>Premier hospitality platform for luxury dining, event venues, and culinary experiences across Africa and beyond.</p>

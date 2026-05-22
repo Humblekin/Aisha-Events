@@ -146,14 +146,8 @@
 }
 .nav-logo .logo-icon {
   width: 36px; height: 36px;
-  background: linear-gradient(135deg, var(--gold), var(--orange));
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #0A0A0A;
-  font-size: 0.85rem;
-  font-weight: 800;
+  object-fit: cover;
 }
 .nav-links { display: flex; align-items: center; gap: 6px; }
 .nav-links a {

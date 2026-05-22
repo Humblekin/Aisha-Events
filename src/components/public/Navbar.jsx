@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { initializePayment } from '../../lib/paystack'
 import { sanitizeText } from '../../lib/sanitize'
+import logo from '../../assets/Aisha images/logo.jpeg'
 
 export default function Navbar({ onOpenAuth }) {
   const { theme, toggleTheme } = useTheme()
@@ -132,7 +133,7 @@ export default function Navbar({ onOpenAuth }) {
     <>
       <nav className={`nav glass${scrolled ? ' scrolled' : ''}`} id="mainNav" role="navigation" aria-label="Main navigation">
         <a href="#" className="nav-logo">
-          <span className="logo-icon">AE</span>
+          <img src={logo} alt="Aisha Events" className="logo-icon" />
           Aisha Events
         </a>
         <div className="nav-links">
@@ -178,7 +179,7 @@ export default function Navbar({ onOpenAuth }) {
       <div className={`mobile-menu${mobileOpen ? ' open' : ''}`} id="mobileMenu" role="dialog" aria-label="Mobile navigation" onClick={(e) => { if (e.target === e.currentTarget) setMobileOpen(false) }}>
         <div className="mobile-menu-header">
           <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); scrollTo('hero') }}>
-            <span className="logo-icon">AE</span>
+            <img src={logo} alt="Aisha Events" className="logo-icon" />
             Aisha Events
           </a>
           <button type="button" className="close-menu" onClick={() => setMobileOpen(false)} aria-label="Close menu"><i className="fas fa-times"></i></button>
