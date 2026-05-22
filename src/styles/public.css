@@ -1376,8 +1376,8 @@ video.hero-slide {
   border-radius: var(--radius-lg);
   padding: 40px;
   margin-top: 40px;
-  background: rgba(10,10,10,0.5);
-  backdrop-filter: blur(20px);
+  background: var(--black-card);
+  border: 1px solid var(--glass-border);
   box-shadow: 0 8px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(200,164,86,0.1);
 }
 .vip-form-header {
@@ -1431,7 +1431,7 @@ video.hero-slide {
   padding: 14px 18px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--glass-border);
-  background: rgba(255,255,255,0.04);
+  background: var(--glass);
   color: var(--gray-200);
   font-size: 0.9rem;
   resize: vertical;
