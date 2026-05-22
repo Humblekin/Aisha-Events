@@ -55,6 +55,7 @@ export default function Footer() {
         <div className="footer-bottom">
           <span>{new Date().getFullYear()} Aisha Events Centre. All rights reserved.</span>
           <span>Crafted with elegance in Tamale, Ghana</span>
+          <span>Website by <strong>HumbleDev Tech</strong></span>
         </div>
       </div>
     </footer>
