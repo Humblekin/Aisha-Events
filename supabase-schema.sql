@@ -153,7 +153,9 @@ CREATE POLICY "Admins can manage events"
 CREATE TABLE bookings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES profiles(id) NOT NULL,
+  guest_name TEXT,
   booking_type TEXT CHECK (booking_type IN ('restaurant', 'venue', 'event', 'vip')),
+  service_name TEXT,
   restaurant_id UUID REFERENCES restaurants(id),
   venue_id UUID REFERENCES venues(id),
   event_id UUID REFERENCES events(id),
@@ -164,6 +166,7 @@ CREATE TABLE bookings (
   amount DECIMAL(12,2),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
   payment_id UUID,
+  payment_reference TEXT,
   vip_package TEXT,
   vip_occasion TEXT,
   vip_concierge BOOLEAN DEFAULT false,

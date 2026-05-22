@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   amount DECIMAL(12,2),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
   payment_id UUID,
+  payment_reference TEXT,
   vip_package TEXT,
   vip_occasion TEXT,
   vip_concierge BOOLEAN DEFAULT false,
