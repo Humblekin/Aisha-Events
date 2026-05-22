@@ -75,6 +75,10 @@ export default function Navbar({ onOpenAuth }) {
     }
 
     if (paymentMethod === 'paystack') {
+      const timeoutId = setTimeout(() => {
+        addToast('Payment timed out. Please try again.', 'error')
+      }, 120000)
+
       initializePayment({
         email: user?.email || 'customer@aishaevents.com',
         amount: getTotal(),
@@ -93,6 +97,7 @@ export default function Navbar({ onOpenAuth }) {
           ]
         },
         onSuccess: async (response) => {
+          clearTimeout(timeoutId)
           const order = await submitOrder(safeOrderType, safeAddress, {
             method: 'paystack',
             reference: response.reference,
@@ -104,8 +109,9 @@ export default function Navbar({ onOpenAuth }) {
             setDeliveryAddress('')
           }
         },
-        onCancel: () => {
-          addToast('Payment cancelled', 'info')
+        onCancel: (msg) => {
+          clearTimeout(timeoutId)
+          addToast(msg || 'Payment cancelled', 'info')
         }
       })
     } else {

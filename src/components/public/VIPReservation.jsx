@@ -93,6 +93,11 @@ export default function VIPReservation({ onOpenAuth }) {
     const amount = calcTotal(data.concierge)
     const email = data.email || user?.email || 'guest@example.com'
 
+    const timeoutId = setTimeout(() => {
+      setLoading(false)
+      addToast('Payment timed out. Please try again.', 'error')
+    }, 120000)
+
     initializePayment({
       email,
       amount,
@@ -106,9 +111,11 @@ export default function VIPReservation({ onOpenAuth }) {
         vip_occasion: data.occasion
       },
       onSuccess: async (response) => {
+        clearTimeout(timeoutId)
         await doVipBooking(data, response.reference)
       },
       onCancel: (msg) => {
+        clearTimeout(timeoutId)
         setLoading(false)
         addToast(msg || 'Payment cancelled. Your VIP reservation was not confirmed.', 'info')
       }

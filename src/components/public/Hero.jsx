@@ -90,6 +90,12 @@ export default function Hero({ onOpenAuth }) {
   const proceedToPayment = (data) => {
     setBookingLoading(true)
     const totalAmount = BOOKING_DEPOSIT * (data.guests || 1)
+
+    const timeoutId = setTimeout(() => {
+      setBookingLoading(false)
+      addToast('Payment timed out. Please try again.', 'error')
+    }, 120000)
+
     initializePayment({
       email: user?.email || 'guest@example.com',
       amount: totalAmount,
@@ -101,9 +107,11 @@ export default function Hero({ onOpenAuth }) {
         booking_time: data.booking_time
       },
       onSuccess: async (response) => {
+        clearTimeout(timeoutId)
         await doBooking(data, response.reference)
       },
       onCancel: (msg) => {
+        clearTimeout(timeoutId)
         setBookingLoading(false)
         addToast(msg || 'Payment cancelled. Your booking was not confirmed.', 'info')
       }

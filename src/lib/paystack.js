@@ -12,18 +12,33 @@ export function initializePayment({ email, amount, metadata, onSuccess, onCancel
     return
   }
 
+  if (!email || !amount || amount <= 0) {
+    onCancel?.('Invalid payment details. Please check your form and try again.')
+    return
+  }
+
+  const payAmount = Math.round(amount * 100)
+  if (payAmount < 100) {
+    onCancel?.('Minimum payment amount is 1 GHS.')
+    return
+  }
+
+  let paid = false
+
   try {
     const handler = window.PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email,
-      amount: amount * 100,
+      amount: payAmount,
       currency: 'GHS',
       metadata,
       callback(response) {
+        if (paid) return
+        paid = true
         onSuccess?.(response)
       },
       onClose() {
-        onCancel?.()
+        if (!paid) onCancel?.()
       }
     })
 
@@ -32,6 +47,10 @@ export function initializePayment({ email, amount, metadata, onSuccess, onCancel
     console.error('Paystack initialization failed:', err)
     onCancel?.(err.message || 'Payment initialization failed')
   }
+}
+
+export function verifyPaystackLoaded() {
+  return typeof window.PaystackPop !== 'undefined'
 }
 
 export async function verifyTransaction(reference) {
