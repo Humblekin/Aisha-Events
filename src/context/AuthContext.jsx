@@ -1,22 +1,38 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from './ToastContext'
 import { dataService, setUseMockData } from '../lib/dataService'
 import { supabase } from '../lib/supabase'
+import { validateEmail } from '../lib/sanitize'
 
 const AuthContext = createContext()
 const SESSION_KEY = 'aisha_session'
+const MAX_LOGIN_ATTEMPTS = 5
+const LOCKOUT_DURATION = 900000
 
 function loadSession() {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed.expires && Date.now() > parsed.expires) {
+      localStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return parsed
+  } catch {
+    localStorage.removeItem(SESSION_KEY)
+    return null
+  }
 }
 
 function saveSession(data) {
-  if (data) localStorage.setItem(SESSION_KEY, JSON.stringify(data))
-  else localStorage.removeItem(SESSION_KEY)
+  if (data) {
+    const session = { ...data, expires: Date.now() + 86400000 }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  } else {
+    localStorage.removeItem(SESSION_KEY)
+  }
 }
 
 export function AuthProvider({ children }) {
@@ -67,7 +83,45 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const loginAttempts = useRef({})
+
+  const checkRateLimit = useCallback((identifier) => {
+    const now = Date.now()
+    const record = loginAttempts.current[identifier]
+    if (record) {
+      if (record.count >= MAX_LOGIN_ATTEMPTS && now - record.firstAttempt < LOCKOUT_DURATION) {
+        const remaining = Math.ceil((LOCKOUT_DURATION - (now - record.firstAttempt)) / 60000)
+        throw new Error(`Too many login attempts. Please try again in ${remaining} minute(s).`)
+      }
+      if (now - record.firstAttempt >= LOCKOUT_DURATION) {
+        loginAttempts.current[identifier] = { count: 1, firstAttempt: now }
+      } else {
+        loginAttempts.current[identifier].count++
+      }
+    } else {
+      loginAttempts.current[identifier] = { count: 1, firstAttempt: now }
+    }
+  }, [])
+
   const login = useCallback(async (email, password) => {
+    if (!email || !password) {
+      addToast('Email and password are required', 'error')
+      return
+    }
+    if (!validateEmail(email)) {
+      addToast('Please enter a valid email address', 'error')
+      return
+    }
+    if (password.length < 8) {
+      addToast('Password must be at least 8 characters', 'error')
+      return
+    }
+    try {
+      checkRateLimit(email.toLowerCase())
+    } catch (e) {
+      addToast(e.message, 'error')
+      return
+    }
     if (dataService.isConfigured()) {
       try {
         const { user: u } = await dataService.signIn(email, password)
@@ -93,16 +147,31 @@ export function AuthProvider({ children }) {
     updateAuth(mockUser, 'admin')
     addToast(`Welcome back! Signed in as ${email} (demo mode)`, 'success')
     navigate('/admin')
-  }, [addToast, updateAuth, navigate])
+  }, [addToast, updateAuth, navigate, checkRateLimit])
 
   const register = useCallback(async (firstName, lastName, email, password) => {
+    if (!firstName || !lastName || !email || !password) {
+      addToast('All fields are required', 'error')
+      return
+    }
+    if (!validateEmail(email)) {
+      addToast('Please enter a valid email address', 'error')
+      return
+    }
+    if (password.length < 8) {
+      addToast('Password must be at least 8 characters', 'error')
+      return
+    }
+    const safeFirst = firstName.replace(/[<>&"'/]/g, '').trim()
+    const safeLast = lastName.replace(/[<>&"'/]/g, '').trim()
+    const safeEmail = email.trim().toLowerCase()
     if (dataService.isConfigured()) {
       try {
-        const { user: u } = await dataService.signUp(email, password, { first_name: firstName, last_name: lastName, role: 'customer' })
+        const { user: u } = await dataService.signUp(safeEmail, password, { first_name: safeFirst, last_name: safeLast, role: 'customer' })
         if (u) {
           setUseMockData(false)
           updateAuth(u, 'customer')
-          addToast(`Account created for ${firstName} ${lastName}! Welcome to Aisha.`, 'success')
+          addToast(`Account created for ${safeFirst} ${safeLast}! Welcome to Aisha.`, 'success')
           navigate('/')
           return
         }
@@ -111,10 +180,10 @@ export function AuthProvider({ children }) {
         return
       }
     }
-    const mockUser = { id: `demo-${Date.now()}`, firstName, lastName, email, user_metadata: { role: 'admin' }, app_metadata: {} }
+    const mockUser = { id: `demo-${Date.now()}`, firstName: safeFirst, lastName: safeLast, email: safeEmail, user_metadata: { role: 'admin' }, app_metadata: {} }
     setUseMockData(true)
     updateAuth(mockUser, 'admin')
-    addToast(`Account created for ${firstName} ${lastName}! Welcome to Aisha. (demo mode)`, 'success')
+    addToast(`Account created for ${safeFirst} ${safeLast}! Welcome to Aisha. (demo mode)`, 'success')
     navigate('/admin')
   }, [addToast, updateAuth, navigate])
 

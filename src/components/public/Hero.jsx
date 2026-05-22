@@ -3,6 +3,7 @@ import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
 import { dataService } from '../../lib/useData'
 import { initializePayment } from '../../lib/paystack'
+import { sanitizeText } from '../../lib/sanitize'
 import heroVideo from '../../assets/Aisha images/aish video.mp4'
 import heroImg1 from '../../assets/Aisha images/image 1.jpeg'
 import heroImg2 from '../../assets/Aisha images/image 2.jpeg'
@@ -119,10 +120,10 @@ export default function Hero({ onOpenAuth }) {
   const handleBooking = async (e) => {
     e.preventDefault()
     const form = e.target
-    const date = form.bookDate.value
-    const time = form.bookTime.value
-    const guests = form.bookGuests.value
-    const type = form.bookType.value
+    const date = sanitizeText(form.bookDate.value)
+    const time = sanitizeText(form.bookTime.value)
+    const guests = sanitizeText(form.bookGuests.value)
+    const type = sanitizeText(form.bookType.value)
 
     if (!date || !time || !guests) {
       addToast('Please fill in all booking details', 'error')

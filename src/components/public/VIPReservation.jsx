@@ -3,6 +3,7 @@ import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
 import { dataService } from '../../lib/useData'
 import { initializePayment } from '../../lib/paystack'
+import { sanitizeText, validateEmail, validatePhone } from '../../lib/sanitize'
 
 const VIP_PACKAGES = [
   { id: 'gold', label: 'Gold', price: 500, color: '#C8A456', desc: 'Premium seating, welcome drink, dedicated server' },
@@ -105,18 +106,41 @@ export default function VIPReservation({ onOpenAuth }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.date || !formData.time) {
-      addToast('Please select date and time for your VIP reservation', 'error')
+
+    if (!formData.date || !formData.time || !formData.guests || !formData.occasion) {
+      addToast('Please fill in all required fields', 'error')
       return
     }
 
+    if (formData.email && !validateEmail(formData.email)) {
+      addToast('Please enter a valid email address', 'error')
+      return
+    }
+
+    if (formData.phone && !validatePhone(formData.phone)) {
+      addToast('Please enter a valid phone number', 'error')
+      return
+    }
+
+    const bookingPayload = {
+      date: sanitizeText(formData.date),
+      time: sanitizeText(formData.time),
+      guests: parseInt(String(formData.guests)) || 1,
+      occasion: sanitizeText(formData.occasion),
+      special_requests: sanitizeText(formData.special_requests || ''),
+      concierge: formData.concierge,
+      name: sanitizeText(formData.name || ''),
+      phone: sanitizeText(formData.phone || ''),
+      email: sanitizeText(formData.email || '')
+    }
+
     if (!isAuthenticated) {
-      pendingVip.current = { ...formData }
+      pendingVip.current = bookingPayload
       onOpenAuth()
       return
     }
 
-    proceedVipPayment(formData)
+    proceedVipPayment(bookingPayload)
   }
 
   return (

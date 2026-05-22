@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { initializePayment } from '../../lib/paystack'
+import { sanitizeText } from '../../lib/sanitize'
 
 export default function Navbar({ onOpenAuth }) {
   const { theme, toggleTheme } = useTheme()
@@ -65,7 +66,10 @@ export default function Navbar({ onOpenAuth }) {
   }
 
   const handlePlaceOrder = async () => {
-    if (orderType === 'Delivery' && !deliveryAddress.trim()) {
+    const safeAddress = sanitizeText(deliveryAddress)
+    const safeOrderType = sanitizeText(orderType)
+
+    if (safeOrderType === 'Delivery' && !safeAddress) {
       addToast('Please enter a delivery address', 'error')
       return
     }
@@ -84,12 +88,12 @@ export default function Navbar({ onOpenAuth }) {
             {
               display_name: 'Delivery Address',
               variable_name: 'delivery_address',
-              value: deliveryAddress
+              value: safeAddress
             }
           ]
         },
         onSuccess: async (response) => {
-          const order = await submitOrder(orderType, deliveryAddress, {
+          const order = await submitOrder(safeOrderType, safeAddress, {
             method: 'paystack',
             reference: response.reference,
             status: 'completed'
@@ -105,8 +109,7 @@ export default function Navbar({ onOpenAuth }) {
         }
       })
     } else {
-      // Pay on Delivery / Cash on Delivery
-      const order = await submitOrder(orderType, deliveryAddress, {
+      const order = await submitOrder(safeOrderType, safeAddress, {
         method: 'cash',
         reference: '',
         status: 'pending'

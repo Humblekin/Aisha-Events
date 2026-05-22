@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '../components/public/Navbar'
+import { sanitizeText } from '../lib/sanitize'
 import Hero from '../components/public/Hero'
 import FeaturedRestaurants from '../components/public/FeaturedRestaurants'
 import PremiumVenues from '../components/public/PremiumVenues'
@@ -21,7 +22,8 @@ export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
-    if (searchParams.get('require') === 'auth') {
+    const requireAuth = sanitizeText(searchParams.get('require') || '')
+    if (requireAuth === 'auth') {
       setAuthOpen(true)
       setSearchParams({}, { replace: true })
     }

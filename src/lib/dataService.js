@@ -12,24 +12,45 @@ import {
   updateComplaint, deleteComplaint,
   uploadImage, deleteImage
 } from './supabase'
+import { sanitizeObject, sanitizeText } from './sanitize'
 import * as mock from '../data/mockData'
 
 const STORAGE_KEY = 'aisha_mock_data_v2'
+
+function verifyIntegrity(data) {
+  if (!data || typeof data !== 'object') return false
+  if (!data._checksum) return false
+  const { _checksum, ...rest } = data
+  const hash = btoa(JSON.stringify(rest)).slice(0, 32)
+  return _checksum === hash
+}
+
+function computeChecksum(data) {
+  const rest = Object.assign({}, data)
+  delete rest._checksum
+  return btoa(JSON.stringify(rest)).slice(0, 32)
+}
 
 function persistedArray(key, fallback) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const all = JSON.parse(raw)
-      if (Array.isArray(all[key])) return all[key]
+      if (!verifyIntegrity(all)) {
+        localStorage.removeItem(STORAGE_KEY)
+        return [...fallback]
+      }
+      if (Array.isArray(all[key])) return all[key].map(item => sanitizeObject(item))
     }
-  } catch {}
+  } catch {
+    localStorage.removeItem(STORAGE_KEY)
+  }
   return [...fallback]
 }
 
 function saveAll() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const data = {
       restaurants: mockRestaurants,
       venues: mockVenues,
       meals: mockMeals,
@@ -43,7 +64,9 @@ function saveAll() {
       notifications: mockNotifications,
       activities: mockActivities,
       recentBookings: mockRecentBookings
-    }))
+    }
+    data._checksum = computeChecksum(data)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   } catch {}
 }
 
@@ -201,50 +224,52 @@ const mapUser = (u) => ({
 })
 
 // ---- FIELD REVERSE MAPPERS (frontend → Supabase snake_case) ----
+const sanitizeFormText = (v) => typeof v === 'string' ? sanitizeText(v) : v
+
 const unmapRestaurant = (r) => ({
-  name: r.name, cuisine: r.cuisine,
+  name: sanitizeFormText(r.name), cuisine: sanitizeFormText(r.cuisine),
   rating: r.rating || 0,
-  price_range: r.price || '$$',
+  price_range: sanitizeFormText(r.price) || '$$',
   image_url: r.image_url || r.img,
-  tags: r.tags || [],
-  location: r.location,
+  tags: Array.isArray(r.tags) ? r.tags.map(sanitizeFormText) : [],
+  location: sanitizeFormText(r.location),
   tables_count: r.tables || 10,
   revenue: r.revenue || null,
-  status: r.status || 'active'
+  status: sanitizeFormText(r.status) || 'active'
 })
 
 const unmapVenue = (v) => ({
-  name: v.name, type: v.type,
+  name: sanitizeFormText(v.name), type: sanitizeFormText(v.type),
   capacity: v.capacity || 0,
   price_per_event: v.price_per_event || parseFloat(String(v.price).replace(/,/g, '')) || 0,
   image_url: v.image_url || v.img,
-  badge: v.badge,
+  badge: sanitizeFormText(v.badge),
   bookings_count: v.bookings || 0,
-  status: v.status || 'active'
+  status: sanitizeFormText(v.status) || 'active'
 })
 
 const unmapMeal = (m) => ({
-  name: m.name, description: m.desc,
+  name: sanitizeFormText(m.name), description: sanitizeFormText(m.desc),
   price: parseFloat(String(m.price).replace(/,/g, '')) || 0,
   prep_time: parseInt(m.time) || 15,
   image_url: m.image_url || m.img,
-  category: m.category,
+  category: sanitizeFormText(m.category),
   restaurant_id: m.restaurant_id,
   orders_count: m.orders || 0,
   rating: m.rating || 0,
-  status: m.status || 'active'
+  status: sanitizeFormText(m.status) || 'active'
 })
 
 const unmapEvent = (e) => ({
-  name: e.name,
+  name: sanitizeFormText(e.name),
   event_date: e.event_date || e.fullDate,
-  event_time: e.event_time || e.time || '7:00 PM',
-  location: e.location,
+  event_time: sanitizeFormText(e.event_time || e.time) || '7:00 PM',
+  location: sanitizeFormText(e.location),
   price: parseFloat(String(e.price).replace(/,/g, '')) || 0,
   capacity: e.capacity || 0,
   image_url: e.image_url || e.img,
-  venue_name: e.venue,
-  status: e.status || 'active'
+  venue_name: sanitizeFormText(e.venue),
+  status: sanitizeFormText(e.status) || 'active'
 })
 
 const extractImageUrl = (formData) => formData.image_url || formData.img || ''
@@ -482,10 +507,11 @@ export const dataService = {
   },
 
   async addBooking(bookingData) {
+    const safeData = sanitizeObject(bookingData)
     if (isConfigured()) {
-      return await createBooking(bookingData)
+      return await createBooking(safeData)
     }
-    const record = { ...bookingData, id: `BK-${Date.now()}` }
+    const record = { ...safeData, id: `BK-${Date.now()}` }
     mockBookings.unshift(record)
     notifyRefresh()
     return record
@@ -510,9 +536,10 @@ export const dataService = {
   },
 
   async addOrder(orderData) {
+    const safeData = sanitizeObject(orderData)
     const enrichedData = {
-      ...orderData,
-      order_number: orderData.order_number || `ORD-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`
+      ...safeData,
+      order_number: safeData.order_number || `ORD-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`
     }
     if (isConfigured()) {
       try {
@@ -623,15 +650,16 @@ export const dataService = {
   },
 
   async addPayment(paymentData) {
+    const safeData = sanitizeObject(paymentData)
     if (isConfigured()) {
       try {
-        const { data, error } = await supabase.from('payments').insert([paymentData]).select()
+        const { data, error } = await supabase.from('payments').insert([safeData]).select()
         if (error) throw error
         notifyRefresh()
         return data?.[0]
       } catch { return null }
     }
-    const record = { ...paymentData, id: `PAY-${Date.now()}`, created_at: new Date().toISOString() }
+    const record = { ...safeData, id: `PAY-${Date.now()}`, created_at: new Date().toISOString() }
     mockPayments.unshift(record)
     notifyRefresh()
     return record
@@ -652,17 +680,25 @@ export const dataService = {
   },
 
   async createPromotion(formData) {
+    const safeData = {
+      code: sanitizeText(formData.code || ''),
+      name: sanitizeText(formData.name || ''),
+      desc: sanitizeText(formData.desc || ''),
+      discountType: formData.discountType || 'percentage',
+      value: formData.value,
+      maxUses: formData.maxUses
+    }
     if (!isConfigured()) {
-      const record = { ...formData, id: makeId('promo') }
+      const record = { ...safeData, id: makeId('promo') }
       mockPromotions.unshift(record)
       notifyRefresh()
       return record
     }
     try {
       return await createPromotion({
-        code: formData.code, name: formData.name,
-        description: formData.desc, discount_type: formData.discountType || 'percentage',
-        discount_value: formData.value, max_uses: formData.maxUses,
+        code: safeData.code, name: safeData.name,
+        description: safeData.desc, discount_type: safeData.discountType,
+        discount_value: safeData.value, max_uses: safeData.maxUses,
         current_uses: 0, status: 'active'
       })
     } catch { return null }
@@ -706,7 +742,8 @@ export const dataService = {
   },
 
   async updateComplaint(id, data) {
-    if (isConfigured()) { try { return await updateComplaint(id, data) } catch { return null } }
+    const safeData = sanitizeObject(data)
+    if (isConfigured()) { try { return await updateComplaint(id, safeData) } catch { return null } }
     return null
   },
 
@@ -729,13 +766,17 @@ export const dataService = {
   },
 
   async createNotification(formData) {
-    if (!isConfigured()) return formData
+    const safeData = {
+      title: sanitizeText(formData.title || ''),
+      message: sanitizeText(formData.message || ''),
+      icon: formData.icon || 'fa-bell',
+      color: formData.color || 'var(--gold)',
+      target: formData.target || 'all',
+      is_read: false
+    }
+    if (!isConfigured()) return safeData
     try {
-      return await createNotification({
-        title: formData.title, message: formData.message,
-        icon: formData.icon || 'fa-bell', color: formData.color || 'var(--gold)',
-        target: formData.target || 'all', is_read: false
-      })
+      return await createNotification(safeData)
     } catch { return null }
   },
 

@@ -3,6 +3,7 @@ import { useTheme } from '../../context/ThemeContext'
 import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
 import { dataService } from '../../lib/dataService'
+import { sanitizeHtml } from '../../lib/sanitize'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/admin.css'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -447,7 +448,7 @@ export default function AdminDashboard() {
             {d.activities.map((a, i) => (
               <div key={i} className="ai">
                 <div className="ai-ic" style={{ background: a.bg, color: a.fg }}><i className={`fas ${a.icon}`}></i></div>
-                <div><div className="ai-t" dangerouslySetInnerHTML={{ __html: a.text }} /><div className="ai-tm">{a.time}</div></div>
+                <div><div className="ai-t" dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.text) }} /><div className="ai-tm">{a.time}</div></div>
               </div>
             ))}
           </div>
