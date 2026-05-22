@@ -54,7 +54,7 @@ export default function Footer() {
         </div>
         <div className="footer-bottom">
           <span>2025 Aisha Events Centre. All rights reserved.</span>
-          <span>Crafted with elegance in Lagos, Nigeria</span>
+          <span>Crafted with elegance in Tamale, Ghana</span>
         </div>
       </div>
     </footer>
