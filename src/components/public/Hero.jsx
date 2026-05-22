@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { dataService } from '../../lib/useData'
 import { initializePayment } from '../../lib/paystack'
 import { sanitizeText } from '../../lib/sanitize'
-import heroVideo from '../../assets/Aisha images/aish video.mp4'
+import heroVideo from '../../assets/Aisha images/WhatsApp Video 2026-05-22 at 10.56.32 AM.mp4'
 import heroImg1 from '../../assets/Aisha images/image 1.jpeg'
 import heroImg2 from '../../assets/Aisha images/image 2.jpeg'
 
