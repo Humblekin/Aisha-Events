@@ -204,7 +204,9 @@ CREATE POLICY "Users can view own bookings"
 
 DROP POLICY IF EXISTS "Users can create bookings" ON bookings;
 CREATE POLICY "Users can create bookings"
-  ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
+  ON bookings FOR INSERT WITH CHECK (
+    auth.uid() = user_id OR auth.role() = 'authenticated'
+  );
 
 DROP POLICY IF EXISTS "Admins can view all bookings" ON bookings;
 CREATE POLICY "Admins can view all bookings"
@@ -278,6 +280,12 @@ DROP POLICY IF EXISTS "Admins can view all payments" ON payments;
 CREATE POLICY "Admins can view all payments"
   ON payments FOR SELECT USING (
     auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users can create payments" ON payments;
+CREATE POLICY "Users can create payments"
+  ON payments FOR INSERT WITH CHECK (
+    auth.uid() = user_id OR auth.role() = 'authenticated'
   );
 
 -- 9. COMMISSIONS

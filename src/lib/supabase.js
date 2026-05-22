@@ -5,6 +5,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Ensure session is recovered on page load
+supabase.auth.getSession()
+
 // ---- AUTH ----
 export async function signUp(email, password, userData) {
   const { data, error } = await supabase.auth.signUp({

@@ -4,6 +4,7 @@ import { useToast } from './ToastContext'
 import { dataService, setUseMockData } from '../lib/dataService'
 import { supabase } from '../lib/supabase'
 import { validateEmail } from '../lib/sanitize'
+import { getSession } from '../lib/supabase'
 
 const AuthContext = createContext()
 const SESSION_KEY = 'aisha_session'
@@ -51,6 +52,17 @@ export function AuthProvider({ children }) {
 
   const navigate = useNavigate()
   const { addToast } = useToast()
+
+  useEffect(() => {
+    if (!user) return
+    if (user.id?.startsWith('demo-')) return
+    getSession().then(session => {
+      if (!session) {
+        updateAuth(null)
+        addToast('Session expired. Please log in again.', 'info')
+      }
+    })
+  }, [])
 
   useEffect(() => {
     if (!user) {
