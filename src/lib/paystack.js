@@ -3,24 +3,35 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || ''
 export function initializePayment({ email, amount, metadata, onSuccess, onCancel }) {
   if (!PAYSTACK_PUBLIC_KEY) {
     console.warn('Paystack public key not configured')
+    onCancel?.('Paystack public key not configured. Set VITE_PAYSTACK_PUBLIC_KEY in your environment.')
     return
   }
 
-  const handler = window.PaystackPop.setup({
-    key: PAYSTACK_PUBLIC_KEY,
-    email,
-    amount: amount * 100,
-    currency: 'GHS',
-    metadata,
-    callback(response) {
-      onSuccess?.(response)
-    },
-    onClose() {
-      onCancel?.()
-    }
-  })
+  if (typeof window.PaystackPop === 'undefined') {
+    onCancel?.('Paystack script not loaded. Check your internet connection or ad blocker.')
+    return
+  }
 
-  handler.openIframe()
+  try {
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email,
+      amount: amount * 100,
+      currency: 'GHS',
+      metadata,
+      callback(response) {
+        onSuccess?.(response)
+      },
+      onClose() {
+        onCancel?.()
+      }
+    })
+
+    handler.openIframe()
+  } catch (err) {
+    console.error('Paystack initialization failed:', err)
+    onCancel?.(err.message || 'Payment initialization failed')
+  }
 }
 
 export async function verifyTransaction(reference) {

@@ -103,9 +103,9 @@ export default function Hero({ onOpenAuth }) {
       onSuccess: async (response) => {
         await doBooking(data, response.reference)
       },
-      onCancel: () => {
+      onCancel: (msg) => {
         setBookingLoading(false)
-        addToast('Payment cancelled. Your booking was not confirmed.', 'info')
+        addToast(msg || 'Payment cancelled. Your booking was not confirmed.', 'info')
       }
     })
   }

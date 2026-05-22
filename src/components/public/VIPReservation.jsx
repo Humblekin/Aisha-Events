@@ -5,18 +5,29 @@ import { dataService } from '../../lib/useData'
 import { initializePayment } from '../../lib/paystack'
 import { sanitizeText, validateEmail, validatePhone } from '../../lib/sanitize'
 
-const VIP_PACKAGES = [
+const VIP_CONFIG_KEY = 'aisha_vip_config'
+const DEFAULT_VIP_PACKAGES = [
   { id: 'gold', label: 'Gold', price: 500, color: '#FF5722', desc: 'Premium seating, welcome drink, dedicated server' },
   { id: 'platinum', label: 'Platinum', price: 1000, color: '#E5E4E2', desc: 'Gold + private lounge, champagne, custom menu' },
   { id: 'diamond', label: 'Diamond', price: 2000, color: '#B9F2FF', desc: 'Platinum + personal chef, limousine service, premium decor' },
   { id: 'royal', label: 'Royal', price: 5000, color: '#8A2BE2', desc: 'Diamond + exclusive hall, live entertainment, full concierge' }
 ]
 
+function loadVipConfig() {
+  try {
+    const raw = localStorage.getItem(VIP_CONFIG_KEY)
+    return raw ? JSON.parse(raw) : { packages: DEFAULT_VIP_PACKAGES, conciergeFee: 300 }
+  } catch { return { packages: DEFAULT_VIP_PACKAGES, conciergeFee: 300 } }
+}
+
 const OCCASIONS = ['Birthday', 'Anniversary', 'Corporate Event', 'Date Night', 'Family Gathering', 'Private Party', 'Proposal', 'Other']
 
 export default function VIPReservation({ onOpenAuth }) {
   const { addToast } = useToast()
   const { isAuthenticated, user } = useAuth()
+  const [vipConfig] = useState(loadVipConfig)
+  const VIP_PACKAGES = vipConfig.packages
+  const conciergeFee = vipConfig.conciergeFee
   const [selectedPackage, setSelectedPackage] = useState('gold')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -45,7 +56,7 @@ export default function VIPReservation({ onOpenAuth }) {
 
   const vipPkg = VIP_PACKAGES.find(p => p.id === selectedPackage) || VIP_PACKAGES[0]
 
-  const calcTotal = (concierge) => vipPkg.price + (concierge ? 300 : 0)
+  const calcTotal = (concierge) => vipPkg.price + (concierge ? conciergeFee : 0)
 
   const updateForm = (field, value) => setFormData(prev => ({ ...prev, [field]: value }))
 
@@ -97,9 +108,9 @@ export default function VIPReservation({ onOpenAuth }) {
       onSuccess: async (response) => {
         await doVipBooking(data, response.reference)
       },
-      onCancel: () => {
+      onCancel: (msg) => {
         setLoading(false)
-        addToast('Payment cancelled. Your VIP reservation was not confirmed.', 'info')
+        addToast(msg || 'Payment cancelled. Your VIP reservation was not confirmed.', 'info')
       }
     })
   }
@@ -253,7 +264,7 @@ export default function VIPReservation({ onOpenAuth }) {
                 <span className="vip-toggle-track">
                   <span className="vip-toggle-thumb"></span>
                 </span>
-                <span><i className="fas fa-concierge-bell"></i> Add Dedicated Concierge Service <small>(+GH₵300)</small></span>
+                <span><i className="fas fa-concierge-bell"></i> Add Dedicated Concierge Service <small>(+GH₵{conciergeFee})</small></span>
               </label>
             </div>
 
