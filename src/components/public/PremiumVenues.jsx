@@ -1,7 +1,13 @@
+import { useState } from 'react'
 import { useData, dataService } from '../../lib/useData'
 
 export default function PremiumVenues() {
+  const [showAll, setShowAll] = useState(false)
   const { data: venues } = useData(dataService.fetchVenues)
+  
+  const activeVenues = venues.filter(v => v.status === 'active')
+  const displayedVenues = showAll ? activeVenues : activeVenues.slice(0, 4)
+
   return (
     <section className="section-pad venues-section" id="venues">
       <div className="container">
@@ -11,10 +17,14 @@ export default function PremiumVenues() {
             <h2 className="section-title">Premium Event Venues</h2>
             <p className="section-subtitle">From intimate gatherings to grand celebrations, find the perfect venue for your occasion.</p>
           </div>
-          <a href="#" className="view-all">View all <i className="fas fa-arrow-right"></i></a>
+          {activeVenues.length > 4 && (
+            <button className="view-all" onClick={() => setShowAll(!showAll)} style={{background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--gold)'}}>
+              {showAll ? 'View less' : 'View all'} <i className={`fas fa-arrow-${showAll ? 'up' : 'right'}`}></i>
+            </button>
+          )}
         </div>
         <div className="venues-grid">
-          {venues.filter(v => v.status === 'active').slice(0, 4).map((v, i) => (
+          {displayedVenues.map((v, i) => (
             <article key={v.id} className={`venue-card glass reveal reveal-delay-${i % 4}`} tabIndex="0">
               <div className="venue-img">
                 <img src={v.img?.startsWith('http') ? v.img : `https://picsum.photos/seed/${v.img}/800/500.jpg`} alt={v.name} loading="lazy" />

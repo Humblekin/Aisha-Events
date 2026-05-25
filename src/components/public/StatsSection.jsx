@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 
 function StatCounter({ target }) {
-  const ref = useRef(null)
   const animated = useRef(false)
   const elRef = useRef(null)
 

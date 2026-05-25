@@ -14,20 +14,31 @@ import CTASection from '../components/public/CTASection'
 import Newsletter from '../components/public/Newsletter'
 import Footer from '../components/public/Footer'
 import AuthModal from '../components/public/AuthModal'
+import ContactModal from '../components/public/ContactModal'
 import '../styles/public.css'
 
 export default function HomePage() {
   const [authOpen, setAuthOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
     const requireAuth = sanitizeText(searchParams.get('require') || '')
     if (requireAuth === 'auth') {
-      setAuthOpen(true)
-      setSearchParams({}, { replace: true })
+      const t = setTimeout(() => {
+        setAuthOpen(true)
+        setSearchParams({}, { replace: true })
+      }, 0)
+      return () => clearTimeout(t)
     }
   }, [searchParams, setSearchParams])
+
+  useEffect(() => {
+    const handleContact = () => setContactOpen(true)
+    window.addEventListener('openContactModal', handleContact)
+    return () => window.removeEventListener('openContactModal', handleContact)
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => setShowBackToTop(window.scrollY > 600)
@@ -74,11 +85,11 @@ export default function HomePage() {
       <div className="ambient-orb orb-3"></div>
 
       <Navbar onOpenAuth={() => setAuthOpen(true)} />
-      <Hero onOpenAuth={() => setAuthOpen(true)} />
+      <Hero />
       <FeaturedRestaurants />
       <PremiumVenues />
       <TrendingMeals />
-      <VIPReservation onOpenAuth={() => setAuthOpen(true)} />
+      <VIPReservation />
       <EventsSection />
       <StatsSection />
       <Testimonials />
@@ -95,6 +106,7 @@ export default function HomePage() {
       </button>
 
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+      <ContactModal isOpen={contactOpen} onClose={() => setContactOpen(false)} />
     </>
   )
 }

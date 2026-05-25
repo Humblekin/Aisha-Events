@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { useToast } from './ToastContext'
-import { useAuth } from './AuthContext'
 import { dataService } from '../lib/dataService'
 
 const CartContext = createContext()
@@ -9,7 +8,6 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([])
   const [count, setCount] = useState(0)
   const [submitting, setSubmitting] = useState(false)
-  const { isAuthenticated, user } = useAuth()
   const { addToast } = useToast()
 
   const addToCart = useCallback((name, price) => {
@@ -38,16 +36,12 @@ export function CartProvider({ children }) {
       addToast('Cart is empty', 'error')
       return null
     }
-    if (!isAuthenticated) {
-      window.location.href = '/?require=auth'
-      return null
-    }
     setSubmitting(true)
     try {
       const totalAmount = getTotal()
       const order = await dataService.addOrder({
-        user_id: user?.id,
-        customer_name: user?.email || 'Guest',
+        user_id: null,
+        customer_name: 'Guest',
         items: items.map(i => ({ name: i.name, price: i.price })),
         total: totalAmount,
         type: type.toLowerCase(),
@@ -56,14 +50,14 @@ export function CartProvider({ children }) {
       })
       if (order) {
         await dataService.addPayment({
-          user_id: user?.id,
+          user_id: null,
           order_id: order.id,
           amount: totalAmount,
           currency: 'GHS',
           method: paymentInfo.method || 'cash',
           reference: paymentInfo.reference || `REF-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
           status: paymentInfo.status || 'pending',
-          customer_name: user?.email || 'Guest',
+          customer_name: 'Guest',
           service_name: `Food Order (${type})`
         })
         addToast('Order placed successfully!', 'success')
@@ -79,7 +73,7 @@ export function CartProvider({ children }) {
     } finally {
       setSubmitting(false)
     }
-  }, [items, getTotal, isAuthenticated, user, addToast])
+  }, [items, getTotal, addToast])
 
   const clearCart = useCallback(() => {
     setItems([])

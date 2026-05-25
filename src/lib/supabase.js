@@ -221,6 +221,12 @@ export async function deleteNotification(id) {
 }
 
 // ---- COMPLAINTS ----
+export async function createComplaint(data) {
+  const { data: result, error } = await supabase.from('complaints').insert([data]).select()
+  if (error) throw error
+  return result?.[0]
+}
+
 export async function updateComplaint(id, data) {
   const { data: result, error } = await supabase.from('complaints').update(data).eq('id', id).select()
   if (error) throw error

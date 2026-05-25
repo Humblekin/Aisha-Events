@@ -30,6 +30,7 @@ export function useData(fetchFn, deps = []) {
     })
 
     return () => { mounted = false; unsub() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
   return { data, loading, error }

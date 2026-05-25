@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../../context/ToastContext'
-import { useAuth } from '../../context/AuthContext'
 import { dataService } from '../../lib/useData'
 import { initializePayment } from '../../lib/paystack'
 import { sanitizeText, validateEmail, validatePhone } from '../../lib/sanitize'
@@ -22,12 +21,21 @@ function loadVipConfig() {
 
 const OCCASIONS = ['Birthday', 'Anniversary', 'Corporate Event', 'Date Night', 'Family Gathering', 'Private Party', 'Proposal', 'Other']
 
-export default function VIPReservation({ onOpenAuth }) {
+export default function VIPReservation() {
   const { addToast } = useToast()
-  const { isAuthenticated, user } = useAuth()
-  const [vipConfig] = useState(loadVipConfig)
+  const [vipConfig, setVipConfig] = useState(loadVipConfig)
   const VIP_PACKAGES = vipConfig.packages
   const conciergeFee = vipConfig.conciergeFee
+
+  useEffect(() => {
+    const handler = () => setVipConfig(loadVipConfig())
+    window.addEventListener('storage', handler)
+    window.addEventListener('vipConfigChanged', handler)
+    return () => {
+      window.removeEventListener('storage', handler)
+      window.removeEventListener('vipConfigChanged', handler)
+    }
+  }, [])
   const [selectedPackage, setSelectedPackage] = useState('gold')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -41,16 +49,6 @@ export default function VIPReservation({ onOpenAuth }) {
     phone: '',
     email: ''
   })
-  const pendingVip = useRef(null)
-
-  useEffect(() => {
-    if (isAuthenticated && pendingVip.current) {
-      const data = pendingVip.current
-      pendingVip.current = null
-      setFormData(data)
-      proceedVipPayment(data)
-    }
-  }, [isAuthenticated])
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -60,7 +58,7 @@ export default function VIPReservation({ onOpenAuth }) {
 
   const updateForm = (field, value) => setFormData(prev => ({ ...prev, [field]: value }))
 
-  const doVipBooking = async (data, paymentRef) => {
+  async function doVipBooking(data, paymentRef) {
     setLoading(true)
     try {
       const booking = await dataService.addBooking({
@@ -69,8 +67,7 @@ export default function VIPReservation({ onOpenAuth }) {
         booking_date: data.date,
         booking_time: data.time,
         guests: data.guests,
-        user_id: user?.id,
-        guest_name: data.name || user?.email || 'VIP Guest',
+        guest_name: data.name || data.email || 'VIP Guest',
         vip_package: vipPkg.label,
         vip_occasion: data.occasion,
         vip_concierge: data.concierge,
@@ -81,14 +78,13 @@ export default function VIPReservation({ onOpenAuth }) {
       })
       if (booking) {
         await dataService.addPayment({
-          user_id: user?.id,
           booking_id: booking.id,
           amount: calcTotal(data.concierge),
           currency: 'GHS',
           method: 'paystack',
           reference: paymentRef || `REF-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
           status: paymentRef ? 'completed' : 'pending',
-          customer_name: data.name || user?.email || 'VIP Guest',
+          customer_name: data.name || data.email || 'VIP Guest',
           service_name: `VIP ${vipPkg.label} Package`
         })
       }
@@ -101,10 +97,10 @@ export default function VIPReservation({ onOpenAuth }) {
     }
   }
 
-  const proceedVipPayment = (data) => {
+  function proceedVipPayment(data) {
     setLoading(true)
     const amount = calcTotal(data.concierge)
-    const email = data.email || user?.email || 'guest@example.com'
+    const email = data.email || 'guest@example.com'
 
     const timeoutId = setTimeout(() => {
       setLoading(false)
@@ -163,12 +159,6 @@ export default function VIPReservation({ onOpenAuth }) {
       name: sanitizeText(formData.name || ''),
       phone: sanitizeText(formData.phone || ''),
       email: sanitizeText(formData.email || '')
-    }
-
-    if (!isAuthenticated) {
-      pendingVip.current = bookingPayload
-      onOpenAuth()
-      return
     }
 
     proceedVipPayment(bookingPayload)

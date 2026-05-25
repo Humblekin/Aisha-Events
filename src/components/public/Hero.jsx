@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '../../context/ToastContext'
-import { useAuth } from '../../context/AuthContext'
 import { dataService } from '../../lib/useData'
 import { initializePayment } from '../../lib/paystack'
 import { sanitizeText } from '../../lib/sanitize'
@@ -42,15 +41,13 @@ function AnimatedCounter({ target, suffix }) {
   return <div ref={ref} className="hero-stat-num">{value.toLocaleString()}{suffix}</div>
 }
 
-export default function Hero({ onOpenAuth }) {
+export default function Hero() {
   const { addToast } = useToast()
-  const { isAuthenticated, user } = useAuth()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const [muted, setMuted] = useState(true)
   const videoRef = useRef(null)
   const [bookingLoading, setBookingLoading] = useState(false)
-  const pendingBooking = useRef(null)
 
   useEffect(() => {
     if (videoLoaded) return
@@ -60,25 +57,34 @@ export default function Hero({ onOpenAuth }) {
     return () => clearInterval(interval)
   }, [videoLoaded])
 
-  useEffect(() => {
-    if (isAuthenticated && pendingBooking.current) {
-      const data = pendingBooking.current
-      pendingBooking.current = null
-      proceedToPayment(data)
-    }
-  }, [isAuthenticated])
-
-  const doBooking = async (data, paymentRef) => {
+  async function doBooking(data, paymentRef) {
+    console.log('[DEBUG doBooking] called with data:', data, 'paymentRef:', paymentRef)
     setBookingLoading(true)
     try {
-      await dataService.addBooking({
+      const totalAmount = BOOKING_DEPOSIT * (data.guests || 1)
+      const bookingData = {
         ...data,
-        user_id: user?.id,
-        guest_name: user?.email || 'Guest',
+        guest_name: 'Guest',
         payment_reference: paymentRef || '',
-        amount: BOOKING_DEPOSIT * (data.guests || 1),
+        amount: totalAmount,
         status: paymentRef ? 'confirmed' : 'pending'
-      })
+      }
+      console.log('[DEBUG doBooking] addBooking payload:', bookingData)
+      const booking = await dataService.addBooking(bookingData)
+      console.log('[DEBUG doBooking] addBooking result:', booking)
+      const paymentData = {
+        amount: totalAmount,
+        currency: 'GHS',
+        method: 'paystack',
+        reference: paymentRef || `REF-${Date.now()}`,
+        status: paymentRef ? 'completed' : 'pending',
+        customer_name: 'Guest',
+        service_name: 'Restaurant Booking'
+      }
+      console.log('[DEBUG doBooking] addPayment payload:', paymentData)
+      const payment = await dataService.addPayment(paymentData)
+      console.log('[DEBUG doBooking] addPayment result:', payment)
+      console.log('[DEBUG doBooking] localStorage bookings count:', JSON.parse(localStorage.getItem('aisha_mock_data_v2'))?.bookings?.length)
       addToast(`Table reserved for ${data.guests} on ${data.booking_date} at ${data.booking_time}`, 'success')
       const form = document.getElementById('bookingForm')
       form?.reset()
@@ -89,7 +95,7 @@ export default function Hero({ onOpenAuth }) {
     }
   }
 
-  const proceedToPayment = (data) => {
+  function proceedToPayment(data) {
     setBookingLoading(true)
     const totalAmount = BOOKING_DEPOSIT * (data.guests || 1)
 
@@ -99,7 +105,7 @@ export default function Hero({ onOpenAuth }) {
     }, 120000)
 
     initializePayment({
-      email: user?.email || 'guest@example.com',
+      email: 'guest@example.com',
       amount: totalAmount,
       metadata: {
         booking_type: data.booking_type,
@@ -141,19 +147,6 @@ export default function Hero({ onOpenAuth }) {
     }
 
     const guestCount = parseInt(guests) || 1
-
-    if (!isAuthenticated) {
-      pendingBooking.current = {
-        booking_type: 'restaurant',
-        service_name: 'Restaurant Booking',
-        booking_date: date,
-        booking_time: time,
-        guests: guestCount,
-        special_requests: type !== 'Indoor' ? `Preferred seating: ${type}` : ''
-      }
-      onOpenAuth()
-      return
-    }
 
     proceedToPayment({
       booking_type: 'restaurant',

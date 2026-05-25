@@ -37,10 +37,14 @@ export default function Navbar({ onOpenAuth }) {
   useEffect(() => {
     document.body.style.overflow = cartOpen ? 'hidden' : ''
     // Reset checkout step when cart closes
+    let t
     if (!cartOpen) {
-      setCheckoutStep('cart')
+      t = setTimeout(() => setCheckoutStep('cart'), 0)
     }
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.overflow = ''
+      if (t) clearTimeout(t)
+    }
   }, [cartOpen])
 
   useEffect(() => {
@@ -57,12 +61,6 @@ export default function Navbar({ onOpenAuth }) {
   }
 
   const handleProceedToCheckout = () => {
-    if (!isAuthenticated) {
-      setCartOpen(false)
-      onOpenAuth()
-      addToast('Please sign in to complete your checkout', 'info')
-      return
-    }
     setCheckoutStep('checkout')
   }
 
@@ -151,7 +149,7 @@ export default function Navbar({ onOpenAuth }) {
             <i className="fas fa-shopping-bag"></i>
             {count > 0 && <span className="cart-badge">{count}</span>}
           </button>
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <div className="account-dropdown" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="btn btn-gold" style={{ padding: '10px 22px', fontSize: '0.82rem' }} onClick={() => setAccountOpen(!accountOpen)}>
                 Account <i className="fas fa-chevron-down" style={{ marginLeft: '6px', fontSize: '0.65rem' }}></i>
@@ -165,10 +163,6 @@ export default function Navbar({ onOpenAuth }) {
                 </div>
               )}
             </div>
-          ) : (
-            <button type="button" className="btn btn-gold" style={{ padding: '10px 22px', fontSize: '0.82rem' }} onClick={onOpenAuth}>
-              Sign In
-            </button>
           )}
           <button type="button" className="hamburger" onClick={() => setMobileOpen(true)} aria-label="Open menu">
             <i className="fas fa-bars"></i>
@@ -199,13 +193,9 @@ export default function Navbar({ onOpenAuth }) {
             <i className="fas fa-shopping-bag"></i>
             {count > 0 && <span className="cart-badge">{count}</span>}
           </button>
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <button type="button" className="btn btn-gold mobile-auth-btn" onClick={() => { setMobileOpen(false); logout() }}>
               <i className="fas fa-sign-out-alt" style={{ marginRight: '6px' }}></i> Sign Out
-            </button>
-          ) : (
-            <button type="button" className="btn btn-gold mobile-auth-btn" onClick={() => { setMobileOpen(false); onOpenAuth() }}>
-              Sign In
             </button>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useCart } from '../../context/CartContext'
 import { useToast } from '../../context/ToastContext'
 import { useData, dataService } from '../../lib/useData'
@@ -7,6 +7,7 @@ export default function TrendingMeals() {
   const scrollRef = useRef(null)
   const { addToCart } = useCart()
   const { addToast } = useToast()
+  const [showGrid, setShowGrid] = useState(false)
   const { data: meals } = useData(dataService.fetchMeals)
 
   const scroll = (direction) => {
@@ -29,10 +30,14 @@ export default function TrendingMeals() {
             <h2 className="section-title">Order Delicious Meals</h2>
             <p className="section-subtitle">From kitchen to your doorstep — explore our trending dishes and satisfy your cravings.</p>
           </div>
-          <a href="#" className="view-all">Full menu <i className="fas fa-arrow-right"></i></a>
+          {meals.length > 0 && (
+            <button className="view-all" onClick={() => setShowGrid(!showGrid)} style={{background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--gold)'}}>
+              {showGrid ? 'Scroll view' : 'Full menu'} <i className={`fas fa-${showGrid ? 'exchange-alt' : 'arrow-right'}`}></i>
+            </button>
+          )}
         </div>
-        <div className="meals-scroll-wrapper reveal">
-          <div className="meals-scroll" ref={scrollRef}>
+        <div className={`meals-scroll-wrapper reveal ${showGrid ? 'grid-mode' : ''}`}>
+          <div className={showGrid ? 'meals-grid' : 'meals-scroll'} ref={scrollRef}>
             {meals.map(m => (
               <article key={m.id} className="meal-card glass" tabIndex="0">
                 <div className="meal-img">
@@ -52,10 +57,12 @@ export default function TrendingMeals() {
               </article>
             ))}
           </div>
-          <div className="scroll-controls">
-            <button className="scroll-btn glass" onClick={() => scroll(-1)} aria-label="Scroll left"><i className="fas fa-chevron-left"></i></button>
-            <button className="scroll-btn glass" onClick={() => scroll(1)} aria-label="Scroll right"><i className="fas fa-chevron-right"></i></button>
-          </div>
+          {!showGrid && (
+            <div className="scroll-controls">
+              <button className="scroll-btn glass" onClick={() => scroll(-1)} aria-label="Scroll left"><i className="fas fa-chevron-left"></i></button>
+              <button className="scroll-btn glass" onClick={() => scroll(1)} aria-label="Scroll right"><i className="fas fa-chevron-right"></i></button>
+            </div>
+          )}
         </div>
       </div>
     </section>

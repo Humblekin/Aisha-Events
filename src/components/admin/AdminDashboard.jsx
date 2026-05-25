@@ -1,32 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTheme } from '../../context/ThemeContext'
 import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
-import { dataService } from '../../lib/dataService'
+import { dataService, subscribeRefresh } from '../../lib/dataService'
 import { sanitizeHtml } from '../../lib/sanitize'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/admin.css'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-
-const DEFAULT_VIP_PACKAGES = [
-  { id: 'gold', label: 'Gold', price: 500, color: '#C8A456', desc: 'Premium seating, welcome drink, dedicated server' },
-  { id: 'platinum', label: 'Platinum', price: 1000, color: '#E5E4E2', desc: 'Gold + private lounge, champagne, custom menu' },
-  { id: 'diamond', label: 'Diamond', price: 2000, color: '#B9F2FF', desc: 'Platinum + personal chef, limousine service, premium decor' },
-  { id: 'royal', label: 'Royal', price: 5000, color: '#8A2BE2', desc: 'Diamond + exclusive hall, live entertainment, full concierge' }
-]
-
-const VIP_CONFIG_KEY = 'aisha_vip_config'
-
-function loadVipConfig() {
-  try {
-    const raw = localStorage.getItem(VIP_CONFIG_KEY)
-    return raw ? JSON.parse(raw) : { packages: DEFAULT_VIP_PACKAGES, conciergeFee: 300 }
-  } catch { return { packages: DEFAULT_VIP_PACKAGES, conciergeFee: 300 } }
-}
-
-function saveVipConfig(config) {
-  try { localStorage.setItem(VIP_CONFIG_KEY, JSON.stringify(config)) } catch {}
-}
+import VIPManagement from './VIPManagement'
 
 const pages = [
   { id: 'overview', label: 'Overview', icon: 'fa-th-large' },
@@ -180,11 +161,7 @@ function SettingRow({ label, desc, control }) {
   )
 }
 
-const fm = (n) => {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
-  return n.toLocaleString()
-}
+const fm = (n) => n.toLocaleString()
 
 const parseAmount = (s) => {
   if (typeof s === 'number') return s
@@ -218,17 +195,31 @@ export default function AdminDashboard() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const [restaurants, venues, meals, events, orders, bookings, payments, promotions, complaints, notifications, users, activities, recentBookings] = await Promise.all([
-      dataService.fetchRestaurants(), dataService.fetchVenues(), dataService.fetchMeals(), dataService.fetchEvents(),
-      dataService.fetchOrders(), dataService.fetchBookings(), dataService.fetchPayments(),
-      dataService.fetchPromotions(), dataService.fetchComplaints(),
-      dataService.fetchNotifications(), dataService.fetchUsers(), dataService.fetchActivities(), dataService.fetchRecentBookings()
-    ])
-    setD({ restaurants, venues, meals, events, orders, bookings, payments, promotions, complaints, notifications, users, activities, recentBookings })
-    setLoading(false)
-  }, [])
+    try {
+      const [restaurants, venues, meals, events, orders, bookings, payments, promotions, complaints, notifications, users, activities, recentBookings] = await Promise.all([
+        dataService.fetchRestaurants(), dataService.fetchVenues(), dataService.fetchMeals(), dataService.fetchEvents(),
+        dataService.fetchOrders(), dataService.fetchBookings(), dataService.fetchPayments(),
+        dataService.fetchPromotions(), dataService.fetchComplaints(),
+        dataService.fetchNotifications(), dataService.fetchUsers(), dataService.fetchActivities(), dataService.fetchRecentBookings()
+      ])
+      console.log('[DEBUG Admin] bookings loaded:', bookings?.length, bookings?.map(b => ({ id: b.id, guest: b.guest, type: b.type, dateTime: b.dateTime })))
+      console.log('[DEBUG Admin] payments loaded:', payments?.length)
+      console.log('[DEBUG Admin] localStorage bookings:', JSON.parse(localStorage.getItem('aisha_mock_data_v2')||'{}').bookings?.length)
+      setD({ restaurants, venues, meals, events, orders, bookings, payments, promotions, complaints, notifications, users, activities, recentBookings })
+    } catch (err) {
+      addToast(`Failed to load dashboard data: ${err.message || err}`, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [addToast])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => {
+    const t = setTimeout(() => { loadData() }, 0)
+    const unsub = subscribeRefresh(() => { loadData() })
+    const onFocus = () => { loadData() }
+    window.addEventListener('focus', onFocus)
+    return () => { clearTimeout(t); unsub(); window.removeEventListener('focus', onFocus) }
+  }, [loadData])
 
   const handleExport = (filename, headers, data, mapRowFn) => {
     try {
@@ -290,23 +281,30 @@ export default function AdminDashboard() {
     { name: 'Event Tickets', value: d.bookings.filter(b => b.type === 'Event').length || 1 }
   ]
 
-  const userGrowthData = (() => {
+  const userGrowthData = useMemo(() => {
     const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb']
-    return months.map(m => ({ name: m, users: Math.max(50, d.users.length + Math.floor(Math.random() * 50)) }))
-  })()
+    return months.map((m, idx) => {
+      const pseudoRandom = (m.charCodeAt(0) * (idx + 1)) % 50
+      return { name: m, users: Math.max(50, d.users.length + pseudoRandom) }
+    })
+  }, [d.users.length])
 
-  const cuisineData = (() => {
+  const cuisineData = useMemo(() => {
     const map = {}
     d.meals.forEach(m => {
       const c = m.category || 'Other'
       map[c] = (map[c] || 0) + (m.orders || 0)
     })
     return Object.entries(map).slice(0, 6).map(([name, orders]) => ({ name, orders }))
-  })()
+  }, [d.meals])
 
-  const peakHoursData = ['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM', '12AM'].map(h => ({
-    name: h, bookings: Math.max(1, Math.floor(Math.random() * 100))
-  }))
+  const peakHoursData = useMemo(() => {
+    const hours = ['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM', '12AM']
+    return hours.map((h, idx) => {
+      const pseudoRandom = (h.charCodeAt(0) * (idx + 1)) % 100
+      return { name: h, bookings: Math.max(1, pseudoRandom) }
+    })
+  }, [])
 
   const openModal = (id) => setModals(prev => ({ ...prev, [id]: true }))
   const closeModal = (id) => setModals(prev => ({ ...prev, [id]: false }))
@@ -372,12 +370,27 @@ export default function AdminDashboard() {
     } catch { addToast(`Failed to delete ${label}`, 'error') }
   }
 
-  const handleAction = async (id, label, action, actionFn) => {
+  const handleAddUser = async (e) => {
+    e.preventDefault()
+    const form = e.target
+    const firstName = sanitizeHtml(form.firstName.value)
+    const lastName = sanitizeHtml(form.lastName.value)
+    const email = sanitizeHtml(form.email.value)
+    const role = form.role.value.toLowerCase()
+
     try {
-      await actionFn(id)
-      addToast(`${label} ${action}`, 'success')
+      await dataService.signUp(email, 'TempPass123!', {
+        first_name: firstName,
+        last_name: lastName,
+        role: role
+      })
+      addToast('User created successfully with temporary password "TempPass123!"', 'success')
+      closeModal('addUserM')
+      form.reset()
       loadData()
-    } catch { addToast(`Failed to ${action} ${label}`, 'error') }
+    } catch (err) {
+      addToast(`Failed: ${err.message || err}`, 'error')
+    }
   }
 
   const filteredUsers = d.users.filter(u => {
@@ -572,10 +585,10 @@ export default function AdminDashboard() {
           <div className="tp"><span className="pi">Showing {filteredUsers.length} of {d.users.length} users</span></div>
         </div>
         <Modal isOpen={modals.addUserM} onClose={() => closeModal('addUserM')} title="Add New User" subtitle="Create a new user account">
-          <form onSubmit={(e) => hAdd(e, 'addUserM', 'User')}>
-            <div className="fg"><div className="fgp"><label>First Name</label><input type="text" required /></div><div className="fgp"><label>Last Name</label><input type="text" required /></div></div>
-            <div className="fgp"><label>Email</label><input type="email" required /></div>
-            <div className="fg"><div className="fgp"><label>Role</label><select><option>Customer</option><option>Driver</option><option>Admin</option></select></div></div>
+          <form onSubmit={handleAddUser}>
+            <div className="fg"><div className="fgp"><label>First Name</label><input name="firstName" type="text" required /></div><div className="fgp"><label>Last Name</label><input name="lastName" type="text" required /></div></div>
+            <div className="fgp"><label>Email</label><input name="email" type="email" required /></div>
+            <div className="fg"><div className="fgp"><label>Role</label><select name="role"><option>Customer</option><option>Driver</option><option>Admin</option></select></div></div>
             <div className="ma"><button type="button" className="btn btn-outline" onClick={() => closeModal('addUserM')}>Cancel</button><button type="submit" className="btn btn-gold">Create User</button></div>
           </form>
         </Modal>
@@ -774,7 +787,7 @@ export default function AdminDashboard() {
                     <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={o.items}>{o.items}</td>
                     <td><span className="amt">GH₵{o.total}</span></td><td>{o.type}</td>
                     <td><span className={`sb2 ${stCls(o.status)}`}>{o.status}</span></td>
-                    <td><div className="ta"><button title="View" onClick={() => setViewItem(o)}><i className="fas fa-eye"></i></button><button title="Edit" onClick={() => { setEditItem({ ...o }); openModal('editOrdM') }}><i className="fas fa-pen"></i></button></div></td>
+                    <td><div className="ta"><button title="View" onClick={() => setViewItem(o)}><i className="fas fa-eye"></i></button><button title="Edit" onClick={() => { setEditItem({ ...o }); openModal('editOrdM') }}><i className="fas fa-pen"></i></button><button className="del" title="Delete" onClick={() => handleDelete(o.id, `order ${o.id}`, dataService.deleteOrder)}><i className="fas fa-trash"></i></button></div></td>
                   </tr>
                 ))}
               </tbody>
@@ -811,7 +824,7 @@ export default function AdminDashboard() {
                     <td>{b.type === 'vip' ? <span style={{ color: 'var(--gold)', fontWeight: 600 }}><i className="fas fa-crown"></i> VIP {b.vip_package ? `(${b.vip_package})` : ''}</span> : b.type}</td>
                     <td>{b.dateTime}</td><td>{b.guests}</td><td><span className="amt">GH₵{b.amount}</span></td>
                     <td><span className={`sb2 ${stCls(b.status)}`}>{b.status}</span></td>
-                    <td><div className="ta"><button title="View" onClick={() => setViewItem(b)}><i className="fas fa-eye"></i></button><button title="Edit" onClick={() => { setEditItem({ ...b }); openModal('editBkM') }}><i className="fas fa-pen"></i></button></div></td>
+                    <td><div className="ta"><button title="View" onClick={() => setViewItem(b)}><i className="fas fa-eye"></i></button><button title="Edit" onClick={() => { setEditItem({ ...b }); openModal('editBkM') }}><i className="fas fa-pen"></i></button><button className="del" title="Delete" onClick={() => handleDelete(b.id, `booking ${b.id}`, dataService.deleteBooking)}><i className="fas fa-trash"></i></button></div></td>
                   </tr>
                 ))}
               </tbody>
@@ -880,83 +893,6 @@ export default function AdminDashboard() {
             <div className="ma"><button type="button" className="btn btn-outline" onClick={() => { setEditItem(null); closeModal('editEvtM') }}>Cancel</button><button type="submit" className="btn btn-gold">Save Changes</button></div>
           </form>
         </Modal>
-      </>
-    )
-  }
-
-  function VipManagement() {
-    const [vipConfig, setVipConfigState] = useState(loadVipConfig)
-    const [vipDirty, setVipDirty] = useState(false)
-
-    const updatePackagePrice = (id, newPrice) => {
-      setVipConfigState(prev => ({
-        ...prev,
-        packages: prev.packages.map(p => p.id === id ? { ...p, price: parseInt(newPrice) || 0 } : p)
-      }))
-      setVipDirty(true)
-    }
-
-    const updatePackageDesc = (id, newDesc) => {
-      setVipConfigState(prev => ({
-        ...prev,
-        packages: prev.packages.map(p => p.id === id ? { ...p, desc: newDesc } : p)
-      }))
-      setVipDirty(true)
-    }
-
-    const updateConciergeFee = (fee) => {
-      setVipConfigState(prev => ({ ...prev, conciergeFee: parseInt(fee) || 0 }))
-      setVipDirty(true)
-    }
-
-    const saveSettings = () => {
-      saveVipConfig(vipConfig)
-      setVipDirty(false)
-      addToast('VIP settings saved successfully', 'success')
-    }
-
-    return (
-      <>
-        <div className="ph">
-          <h2>VIP Management <span style={{ fontSize: '.75rem', fontWeight: 400, color: 'var(--gray-500)', marginLeft: 6 }}>(Package Pricing)</span></h2>
-          <div className="ph-a">
-            <button className="btn btn-gold btn-sm" onClick={saveSettings} disabled={!vipDirty}>
-              <i className="fas fa-save"></i> {vipDirty ? 'Save Changes' : 'Saved'}
-            </button>
-          </div>
-        </div>
-        <div className="ftc glass">
-          <table className="dt">
-            <thead><tr><th>Package</th><th>Color</th><th>Price (GHS)</th><th>Description</th></tr></thead>
-            <tbody>
-              {vipConfig.packages.map(pkg => (
-                <tr key={pkg.id}>
-                  <td>
-                    <div className="uc">
-                      <div className="ua" style={{ background: `${pkg.color}22`, color: pkg.color, borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{pkg.label[0]}</div>
-                      <div><div className="un">{pkg.label}</div></div>
-                    </div>
-                  </td>
-                  <td><input type="color" value={pkg.color} disabled style={{ width: 32, height: 32, border: 'none', borderRadius: 6, cursor: 'not-allowed', padding: 0 }} /></td>
-                  <td><input type="number" className="s-input" value={pkg.price} onChange={e => updatePackagePrice(pkg.id, e.target.value)} min="0" step="100" style={{ width: 120 }} /></td>
-                  <td><input type="text" className="s-input" value={pkg.desc} onChange={e => updatePackageDesc(pkg.id, e.target.value)} style={{ width: '100%', minWidth: 300 }} /></td>
-                </tr>
-              ))}
-              <tr>
-                <td><div className="uc"><div className="ua" style={{ background: 'rgba(200,164,86,.12)', color: '#C8A456', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>C</div><div><div className="un">Concierge Fee</div></div></div></td>
-                <td></td>
-                <td><input type="number" className="s-input" value={vipConfig.conciergeFee} onChange={e => updateConciergeFee(e.target.value)} min="0" step="50" style={{ width: 120 }} /></td>
-                <td style={{ color: 'var(--gray-500)', fontSize: '.85rem' }}>Additional charge for dedicated concierge service</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="pc glass" style={{ marginTop: 16, padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <i className="fas fa-info-circle" style={{ color: 'var(--gold)' }}></i>
-          <span style={{ fontSize: '.85rem', color: 'var(--gray-400)' }}>
-            Changes to VIP pricing take effect immediately on the public site after saving.
-          </span>
-        </div>
       </>
     )
   }
@@ -1136,7 +1072,7 @@ export default function AdminDashboard() {
       case 'orders': return <OrdersSection />
       case 'bookings': return <BookingsSection />
       case 'events': return <EventsSectionAdmin />
-      case 'vip': return <VipManagement />
+      case 'vip': return <VIPManagement />
       case 'payments': return <PaymentsSection />
       case 'promotions': return <PromotionsSection />
 
@@ -1183,6 +1119,7 @@ export default function AdminDashboard() {
           </div>
           <div className="tb-r">
             <div className="tb-search"><i className="fas fa-search"></i><input type="text" placeholder="Search anything..." /></div>
+            <button className="tb-icon" onClick={() => loadData()} aria-label="Refresh data" title="Refresh data"><i className="fas fa-sync-alt"></i></button>
             <button className="thm-tog" onClick={toggleTheme} aria-label="Toggle theme"><i className={`fas fa-${theme === 'dark' ? 'moon' : 'sun'}`}></i></button>
             <button className="tb-icon" aria-label="Notifications" onClick={() => go('notifications')}><i className="fas fa-bell"></i><span className="nd"></span></button>
             <button className="tb-icon" onClick={() => { logout(); navigate('/') }} aria-label="Logout"><i className="fas fa-sign-out-alt"></i></button>

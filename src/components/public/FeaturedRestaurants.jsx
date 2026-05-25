@@ -5,7 +5,11 @@ import { useData, dataService } from '../../lib/useData'
 export default function FeaturedRestaurants() {
   const { addToast } = useToast()
   const [liked, setLiked] = useState({})
+  const [showAll, setShowAll] = useState(false)
   const { data: restaurants } = useData(dataService.fetchRestaurants)
+
+  const activeRestaurants = restaurants.filter(r => r.status === 'active')
+  const displayedRestaurants = showAll ? activeRestaurants : activeRestaurants.slice(0, 6)
 
   const toggleFav = (id, e) => {
     e.stopPropagation()
@@ -27,10 +31,14 @@ export default function FeaturedRestaurants() {
             <h2 className="section-title">Featured Restaurants</h2>
             <p className="section-subtitle">Handpicked dining destinations offering world-class cuisine and unforgettable ambience.</p>
           </div>
-          <a href="#" className="view-all">View all <i className="fas fa-arrow-right"></i></a>
+          {activeRestaurants.length > 6 && (
+            <button className="view-all" onClick={() => setShowAll(!showAll)} style={{background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--gold)'}}>
+              {showAll ? 'View less' : 'View all'} <i className={`fas fa-arrow-${showAll ? 'up' : 'right'}`}></i>
+            </button>
+          )}
         </div>
         <div className="restaurants-grid">
-          {restaurants.filter(r => r.status === 'active').slice(0, 6).map((r, i) => (
+          {displayedRestaurants.map((r, i) => (
             <article key={r.id} className={`restaurant-card glass reveal reveal-delay-${i % 4}`} tabIndex="0">
               <div className="card-img">
                 <img src={r.img?.startsWith('http') ? r.img : `https://picsum.photos/seed/${r.img}/600/400.jpg`} alt={r.name} loading="lazy" />
